@@ -2,6 +2,9 @@ package com.kameleoon.openfeature;
 
 import com.kameleoon.KameleoonClient;
 import com.kameleoon.KameleoonException;
+import com.kameleoon.openfeature.dto.types.DataType;
+import com.kameleoon.types.Variable;
+import com.kameleoon.types.Variation;
 import dev.openfeature.sdk.*;
 
 import dev.openfeature.sdk.exceptions.ErrorCode;
@@ -13,7 +16,6 @@ import java.util.Map;
  */
 class KameleoonResolver implements Resolver {
 
-	private static final String VARIABLE_KEY = "variableKey";
 	private final KameleoonClient client;
 
 	KameleoonResolver(KameleoonClient client) {
@@ -26,36 +28,30 @@ class KameleoonResolver implements Resolver {
 	@Override
 	public <T> ProviderEvaluation<T> resolve(String flagKey, T defaultValue, EvaluationContext context) {
 		try {
-			if (context == null) {
-				return makeResolutionDetails(defaultValue, null,
-						ErrorCode.TARGETING_KEY_MISSING,
-						"The TargetingKey is required in context and cannot be omitted.");
-			}
-			// Get a variant
-			String variant = client.getFeatureVariationKey(flagKey);
+			// Get a variation (main SDK method)
+			Variation variation = client.getVariation(flagKey);
 
-			// Get the all variables for the variant
-			Map<String, Object> variables = client.getFeatureVariationVariables(flagKey, variant);
+			// Get variant (variation key)
+			String variant = variation.getKey();
 
 			// Get variableKey if it's provided in context or any first in variation.
 			// It's the responsibility of the client to have only one variable per variation if
 			// variableKey is not provided.
-			String variableKey = getVariableKey(context, variables);
+			String variableKey = getVariableKey(context, variation.getVariables());
 
-			// Try to get value by variable key
-			Object value = variables.get(variableKey);
+			// Try to get variable by variable key
+			Variable variable = variation.getVariables().get(variableKey);
+
+			// Try to get value from variable
+			Object value = variable != null ? variable.getValue() : null;
 
 			if (variableKey == null || value == null) {
 				return makeResolutionDetails(defaultValue, variant, ErrorCode.FLAG_NOT_FOUND,
 						makeErrorDescription(variant, variableKey));
 			}
 
-			if (defaultValue instanceof Value) {
-				value = DataConverter.toOpenFeature(value);
-			}
-
 			// Check if the variable value has a required type
-			if (!value.getClass().equals(defaultValue.getClass())) {
+			if (!(defaultValue instanceof Value || value.getClass().equals(defaultValue.getClass()))) {
 				return makeResolutionDetails(defaultValue, variant, ErrorCode.TYPE_MISMATCH,
 						"The type of value received is different from the requested value.");
 			}
@@ -73,8 +69,8 @@ class KameleoonResolver implements Resolver {
 	/**
 	 * Helper method to get the variable key from the context or variables map.
 	 */
-	private static String getVariableKey(EvaluationContext context, Map<String, Object> variables) {
-		Value variableKeyValue = context.getValue(VARIABLE_KEY);
+	private static String getVariableKey(EvaluationContext context, Map<String, Variable> variables) {
+		Value variableKeyValue = context != null ? context.getValue(DataType.VARIABLE_KEY.getValue()) : null;
 		String variableKey = variableKeyValue != null ? variableKeyValue.asString() : null;
 		if (variableKey == null && !variables.isEmpty()) {
 			Iterator<String> iterator = variables.keySet().iterator();

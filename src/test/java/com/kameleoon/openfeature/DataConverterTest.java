@@ -3,12 +3,15 @@ package com.kameleoon.openfeature;
 import com.kameleoon.data.Conversion;
 import com.kameleoon.data.CustomData;
 import com.kameleoon.data.Data;
+import com.kameleoon.logging.KameleoonLogger;
+import com.kameleoon.logging.LogLevel;
 import com.kameleoon.openfeature.dto.types.ConversionType;
 import com.kameleoon.openfeature.dto.types.CustomDataType;
 import com.kameleoon.openfeature.dto.types.DataType;
 import dev.openfeature.sdk.EvaluationContext;
 import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.Value;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -28,6 +31,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 
 public class DataConverterTest {
+
+	@BeforeAll
+	public static void setUp() {
+		KameleoonLogger.setLogLevel(LogLevel.NONE);
+	}
 
 	@Test
 	public void toKameleoon_NullContext_ReturnsEmpty() {
@@ -119,7 +127,7 @@ public class DataConverterTest {
 		int index1 = rnd.nextInt();
 		int index2 = rnd.nextInt();
 
-		Map<String, Value> customDataDictionary = new HashMap<String, Value>() {{
+		Map<String, Value> allDataDictionary = new HashMap<String, Value>() {{
 			put(DataType.CONVERSION.getValue(), new Value.List(Arrays.asList(
 					new Value.Structure(Collections.singletonMap(ConversionType.GOAL_ID.getValue(), new Value.Integer(goalId1))),
 					new Value.Structure(Collections.singletonMap(ConversionType.GOAL_ID.getValue(), new Value.Integer(goalId2)))
@@ -130,7 +138,7 @@ public class DataConverterTest {
 			)));
 		}};
 
-		EvaluationContext context = new ImmutableContext("", customDataDictionary);
+		EvaluationContext context = new ImmutableContext("", allDataDictionary);
 
 		// Act
 		List<Data> result = DataConverter.toKameleoon(context);

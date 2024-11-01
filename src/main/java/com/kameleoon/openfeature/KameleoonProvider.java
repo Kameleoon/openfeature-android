@@ -33,12 +33,7 @@ import kotlinx.coroutines.flow.Flow;
  */
 public class KameleoonProvider implements FeatureProvider {
 
-	private static final ProviderMetadata METADATA = new ProviderMetadata() {
-		@Override
-		public String getName() {
-			return "Kameleoon Provider";
-		}
-	};
+	private static final ProviderMetadata METADATA = () -> "Kameleoon Provider";
 
 	private final String siteCode;
 	private final Resolver resolver;
@@ -153,7 +148,7 @@ public class KameleoonProvider implements FeatureProvider {
 	 * Evaluate a boolean flag.
 	 *
 	 * @param flagKey           The key of the flag to evaluate.
-	 * @param defaultValue      The default value to return if the flag is not found.
+	 * @param defaultValue      The default value to return if the flag is not found or evaluation is failed.
 	 * @param evaluationContext The context for the evaluation.
 	 * @return The evaluation result.
 	 */
@@ -168,7 +163,7 @@ public class KameleoonProvider implements FeatureProvider {
 	 * Evaluate a double flag.
 	 *
 	 * @param flagKey           The key of the flag to evaluate.
-	 * @param defaultValue      The default value to return if the flag is not found.
+	 * @param defaultValue      The default value to return if the flag is not found or evaluation is failed.
 	 * @param evaluationContext The context for the evaluation.
 	 * @return The evaluation result.
 	 */
@@ -183,7 +178,7 @@ public class KameleoonProvider implements FeatureProvider {
 	 * Evaluate an integer flag.
 	 *
 	 * @param flagKey           The key of the flag to evaluate.
-	 * @param defaultValue      The default value to return if the flag is not found.
+	 * @param defaultValue      The default value to return if the flag is not found or evaluation is failed.
 	 * @param evaluationContext The context for the evaluation.
 	 * @return The evaluation result.
 	 */
@@ -198,7 +193,7 @@ public class KameleoonProvider implements FeatureProvider {
 	 * Evaluate an object flag.
 	 *
 	 * @param flagKey           The key of the flag to evaluate.
-	 * @param defaultValue      The default value to return if the flag is not found.
+	 * @param defaultValue      The default value to return if the flag is not found or evaluation is failed.
 	 * @param evaluationContext The context for the evaluation.
 	 * @return The evaluation result.
 	 */
@@ -206,14 +201,21 @@ public class KameleoonProvider implements FeatureProvider {
 	@Override
 	public ProviderEvaluation<Value> getObjectEvaluation(@NonNull String flagKey, @NonNull Value defaultValue,
 			@Nullable EvaluationContext evaluationContext) {
-		return resolver.resolve(flagKey, defaultValue, evaluationContext);
+		ProviderEvaluation<Object> providerEvaluation = resolver.resolve(flagKey, defaultValue, evaluationContext);
+		return new ProviderEvaluation<>(
+				DataConverter.toOpenFeature(providerEvaluation.getValue()),
+				providerEvaluation.getVariant(),
+				providerEvaluation.getReason(),
+				providerEvaluation.getErrorCode(),
+				providerEvaluation.getErrorMessage()
+		);
 	}
 
 	/**
 	 * Evaluate a string flag.
 	 *
 	 * @param flagKey           The key of the flag to evaluate.
-	 * @param defaultValue      The default value to return if the flag is not found.
+	 * @param defaultValue      The default value to return if the flag is not found or evaluation is failed.
 	 * @param evaluationContext The context for the evaluation.
 	 * @return The evaluation result.
 	 */

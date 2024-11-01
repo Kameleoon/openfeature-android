@@ -58,6 +58,9 @@ public class DataConverter {
 	 * The method for converting Kameleoon objects to OpenFeature Value instances.
 	 */
 	public static Value toOpenFeature(Object context) {
+		if (context == null) {
+			return null;
+		}
 		Value value = null;
 		if (context instanceof Value) {
 			value = (Value) context;
@@ -195,11 +198,20 @@ public class DataConverter {
 		Integer goalId = goalIdValue != null ? goalIdValue.asInteger() : null;
 		goalId = goalId != null ? goalId : 0;
 
-		Value revenueValue = structConversion.get(ConversionType.REVENUE.getValue());
-		Double revenueDouble = revenueValue != null ? revenueValue.asDouble() : null;
-		float revenue = revenueDouble != null ? revenueDouble.floatValue() : 0.0f;
+		return new Conversion(goalId, getFloatFromValue(structConversion.get(ConversionType.REVENUE.getValue())), false);
+	}
 
-		return new Conversion(goalId, revenue, false);
+	private static float getFloatFromValue(Value value) {
+		if (value == null) {
+			return 0.0f;
+		}
+		float floatValue = 0.0f;
+		if (value instanceof Value.Double) {
+			floatValue = (float) ((Value.Double) value).getDouble();
+		} else if (value instanceof Value.Integer) {
+			floatValue = ((Value.Integer) value).getInteger();
+		}
+		return floatValue;
 	}
 
 	@FunctionalInterface

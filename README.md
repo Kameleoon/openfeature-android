@@ -24,7 +24,7 @@ First, choose your preferred dependency manager from the following options and i
 
 ```gradle
 dependencies {
-    implementation 'com.kameleoon:kameleoon-openfeature-android:0.0.1'
+    implementation 'com.kameleoon:kameleoon-openfeature-android:0.0.2'
     // other dependencies
 }
 ```
@@ -38,7 +38,7 @@ dependencies {
         <groupId>com.kameleoon</groupId>
         <artifactId>kameleoon-openfeature-android</artifactId>
         <!-- Update this version to the latest one -->
-        <version>0.0.1</version>
+        <version>0.0.2</version>
     </dependency>
     <!-- other dependencies -->
 </dependencies>
@@ -87,7 +87,7 @@ try {
 client = OpenFeatureAPI.INSTANCE.getClient(null, null);
 
 Map<String, Value> dataDictionary = new HashMap<String, Value>(){{
-	put("variableKey", new Value.String("variableKey"));
+	put(DataType.VARIABLE_KEY.getValue(), new Value.String("variableKey"));
 }};
 
 EvaluationContext evalContext = new ImmutableContext("", dataDictionary);
@@ -122,7 +122,7 @@ runBlocking {
 val client = OpenFeatureAPI.getClient()
 
 val dataDictionary = mapOf(
-    "variableKey" to Value.String("variableKey")
+    DataType.VARIABLE_KEY.value to Value.String("variableKey")
 )
 
 val evalContext = ImmutableContext("", dataDictionary)
@@ -199,19 +199,28 @@ OpenFeatureAPI.setEvaluationContext(context)
 
 The Kameleoon provider provides a few predefined parameters that you can use to target a visitor from a specific audience and track each conversion. These are:
 
-| Parameter              | Description                                                                                                                                                                 |
-|------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `DataType.CUSTOM_DATA` | The parameter is used to set [`CustomData`](https://developers.kameleoon.com/feature-management-and-experimentation/mobile-sdks/android-sdk/#customdata) for a visitor.     |
-| `DataType.CONVERSION`  | The parameter is used to track a [`Conversion`](https://developers.kameleoon.com/feature-management-and-experimentation/mobile-sdks/android-sdk/#conversion) for a visitor. |
+| Parameter               | Description                                                                                                                                                                 |
+|-------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `DataType.CUSTOM_DATA`  | The parameter is used to set [`CustomData`](https://developers.kameleoon.com/feature-management-and-experimentation/mobile-sdks/android-sdk/#customdata) for a visitor.     |
+| `DataType.CONVERSION`   | The parameter is used to track a [`Conversion`](https://developers.kameleoon.com/feature-management-and-experimentation/mobile-sdks/android-sdk/#conversion) for a visitor. |
+| `DataType.VARIABLE_KEY` | The parameter is used to set key of the variable you want to get a value.                                                                                                   |
+
+### DataType.VARIABLE_KEY
+
+The `DataType.VARIABLE_KEY` field has the following parameter:
+
+| Type           | Description                                                                       |
+|----------------|-----------------------------------------------------------------------------------|
+| `Value.string` | Value of the key of the variable you want to get a value This field is mandatory. |
 
 ### DataType.CUSTOM_DATA
 
-Use `DataType.CUSTOM_DATA` to set [`CustomData`](https://developers.kameleoon.com/feature-management-and-experimentation/mobile-sdks/android-sdk/#customdata) for a visitor. The `DataType.CUSTOM_DATA` field has the following parameters:
+Use `DataType.CUSTOM_DATA` to set [`CustomData`](https://developers.kameleoon.com/feature-management-and-experimentation/mobile-sdks/android-sdk/#customdata) for a visitor. For creation use `DataType.makeCustomData` method with the following parameters:
 
-| Parameter               | Type   | Description                                                       |
-|-------------------------|--------|-------------------------------------------------------------------|
-| `CustomDataType.INDEX`  | int    | Index or ID of the custom data to store. This field is mandatory. |
-| `CustomDataType.VALUES` | String | Value of the custom data to store. This field is mandatory.       |
+| Parameter | Type                          | Description                                                       |
+|-----------|-------------------------------|-------------------------------------------------------------------|
+| id        | `int`                         | Index or ID of the custom data to store. This field is mandatory. |
+| values    | `String...` or `List<String>` | Value(s) of the custom data to store. This field is optional.     |
 
 #### Example
 
@@ -220,10 +229,7 @@ Use `DataType.CUSTOM_DATA` to set [`CustomData`](https://developers.kameleoon.co
 
 ```java
 Map<String, Value> customDataDictionary = new HashMap<String, Value>() {{
-	put(DataType.CUSTOM_DATA.getValue(), new Structure(new HashMap<String, Value>() {{
-		put(CustomDataType.INDEX.getValue(), new Integer(1));
-		put(CustomDataType.VALUES.getValue(), new Value.String("10"));			
-	}}));
+	put(DataType.CUSTOM_DATA.getValue(), DataType.makeCustomData(1, "10"));
 }};
 
 EvaluationContext context = new ImmutableContext("", customDataDictionary);
@@ -235,10 +241,7 @@ OpenFeatureAPI.INSTANCE.setEvaluationContext(context);
 
 ```kotlin
 val customDataDictionary = mapOf(
-    DataType.CUSTOM_DATA.value to Value.Structure(mapOf(
-        CustomDataType.INDEX.value to Value.Integer(1),
-        CustomDataType.VALUES.value to Value.String("10")
-    ))
+    DataType.CUSTOM_DATA.value to DataType.makeCustomData(1, "10")
 )
 
 val context = ImmutableContext("", customDataDictionary)
@@ -248,12 +251,12 @@ OpenFeatureAPI.setEvaluationContext(context)
 
 ### DataType.CONVERSION
 
-Use `DataType.CONVERSION` to track a [`Conversion`](https://developers.kameleoon.com/feature-management-and-experimentation/mobile-sdks/android-sdk/#conversion) for a visitor. The `DataType.CONVERSION` field has the following parameters:
+Use `DataType.CONVERSION` to track a [`Conversion`](https://developers.kameleoon.com/feature-management-and-experimentation/mobile-sdks/android-sdk/#conversion) for a visitor. For creation use `DataType.makeConversion` method with the following parameters:
 
-| Parameter                | Type  | Description                                                     |
-|--------------------------|-------|-----------------------------------------------------------------|
-| `ConversionType.GOAL_ID` | int   | Identifier of the goal. This field is mandatory.                |
-| `ConversionType.REVENUE` | float | Revenue associated with the conversion. This field is optional. |
+| Parameter | Type    | Description                                                     |
+|-----------|---------|-----------------------------------------------------------------|
+| goalId    | `int`   | Identifier of the goal. This field is mandatory.                |
+| revenue   | `float` | Revenue associated with the conversion. This field is optional. |
 
 #### Example
 
@@ -262,10 +265,7 @@ Use `DataType.CONVERSION` to track a [`Conversion`](https://developers.kameleoon
 
 ```java
 Map<String, Value> conversionDictionary = new HashMap<String, Value>() {{
-	put(DataType.CONVERSION.getValue(), new Value.Structure(new HashMap<String, Value>() {{
-		put(ConversionType.GOAL_ID.getValue(), new Value.Integer(1));
-		put(ConversionType.REVENUE.getValue(), new Value.Integer(200));
-	}}));
+	put(DataType.CONVERSION.getValue(), DataType.makeConversion(1, 200));
 }};
 
 EvaluationContext context = new ImmutableContext("", conversionDictionary);
@@ -277,10 +277,7 @@ OpenFeatureAPI.INSTANCE.setEvaluationContext(context);
 
 ```kotlin
 val conversionDictionary = mapOf(
-    DataType.CONVERSION.value to Value.Structure(mapOf(
-        ConversionType.GOAL_ID.value to Value.Integer(1),
-        ConversionType.REVENUE.value to Value.Integer(200)
-    ))
+    DataType.CONVERSION.value to DataType.makeConversion(1, 200)
 )
 
 val context = ImmutableContext("", conversionDictionary)
@@ -299,19 +296,10 @@ For example, the following code provides one `DataType.CONVERSION` instance and 
 
 ```java
 Map<String, Value> dataDictionary = new HashMap<String, Value>() {{
-	put(DataType.CONVERSION.getValue(), new Value.Structure(new HashMap<String, Value>() {{
-		put(ConversionType.GOAL_ID.getValue(), new Value.Integer(1));
-		put(ConversionType.REVENUE.getValue(), new Value.Integer(200));
-	}}));
+	put(DataType.CONVERSION.getValue(), DataType.makeConversion(1, 200));
 	put(DataType.CUSTOM_DATA.getValue(), new Value.List(Arrays.asList(
-		new Value.Structure(new HashMap<String, Value>() {{
-		    put(CustomDataType.INDEX.getValue(), new Value.Integer(1));
-		    put(CustomDataType.VALUES.getValue(), new Value.List(Arrays.asList(new Value.String("10"), new Value.String("30"))));
-		}}),
-        new Value.Structure(new HashMap<String, Value>() {{
-		    put(CustomDataType.INDEX.getValue(), new Value.Integer(2));
-		    put(CustomDataType.VALUES.getValue(), new Value.String("20"));
-		}})
+		DataType.makeCustomData(1, Arrays.asList("10", "30")),
+        DataType.makeCustomData(2, "20")
     )));
 }};
 
@@ -324,19 +312,10 @@ OpenFeatureAPI.INSTANCE.setEvaluationContext(context);
 
 ```kotlin
 val dataDictionary = mapOf(
-    DataType.CONVERSION.value to Value.Structure(mapOf(
-        ConversionType.GOAL_ID.value to Value.Integer(1),
-        ConversionType.REVENUE.value to Value.Integer(200)
-    )),
+    DataType.CONVERSION.value to DataType.makeConversion(1, 200),
     DataType.CUSTOM_DATA.value to Value.List(listOf(
-        Value.Structure(mapOf(
-            CustomDataType.INDEX.value to Value.Integer(1),
-            CustomDataType.VALUES.value to Value.List(listOf(Value.String("10"), Value.String("30")))
-        )),
-        Value.Structure(mapOf(
-            CustomDataType.INDEX.value to Value.Integer(2),
-            CustomDataType.VALUES.value to Value.String("20")
-        ))
+        DataType.makeCustomData(1, listOf("10", "30")),
+        DataType.makeCustomData(2, "20")
     ))
 )
 

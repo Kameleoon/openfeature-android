@@ -5,7 +5,10 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import android.content.Context;
@@ -13,7 +16,12 @@ import androidx.test.platform.app.InstrumentationRegistry;
 import com.kameleoon.KameleoonClient;
 import com.kameleoon.KameleoonClientConfig;
 import com.kameleoon.KameleoonClientFactory;
-import com.kameleoon.KameleoonException;
+import com.kameleoon.data.Conversion;
+import com.kameleoon.data.CustomData;
+import com.kameleoon.data.Data;
+import com.kameleoon.openfeature.dto.types.DataType;
+import dev.openfeature.sdk.EvaluationContext;
+import dev.openfeature.sdk.ImmutableContext;
 import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.ProviderMetadata;
 import dev.openfeature.sdk.Reason;
@@ -21,9 +29,14 @@ import dev.openfeature.sdk.Value;
 import dev.openfeature.sdk.events.OpenFeatureEvents.ProviderNotReady;
 import dev.openfeature.sdk.events.OpenFeatureEvents.ProviderReady;
 import dev.openfeature.sdk.exceptions.OpenFeatureError.ProviderNotReadyError;
-import java.util.concurrent.CompletableFuture;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 public class KameleoonProviderTest {
 
@@ -35,12 +48,10 @@ public class KameleoonProviderTest {
 	private KameleoonClient clientMock;
 	private KameleoonResolver resolverMock;
 	private KameleoonProvider provider;
-	private CompletableFuture<Void> readyFuture;
 
 	@Before
 	public void setUp() {
 		clientMock = mock(KameleoonClient.class);
-		readyFuture = new CompletableFuture<>();
 		resolverMock = mock(KameleoonResolver.class);
 		config = new KameleoonClientConfig.Builder().build();
 		provider = new KameleoonProvider(SITE_CODE, clientMock, resolverMock, context);
@@ -139,7 +150,7 @@ public class KameleoonProviderTest {
 	public void resolveStructureValueReturnsCorrectValue() {
 		// Arrange
 		Value defaultValue = new Value.String("default");
-		Value expectedValue = new Value.String("expected");
+		Value expectedValue = new Value.Integer(100);
 		setupResolverMock(defaultValue, expectedValue);
 
 		// Act
@@ -151,7 +162,6 @@ public class KameleoonProviderTest {
 		assertNull(result.getErrorCode());
 		assertNull(result.getErrorMessage());
 	}
-
 
 	@Test
 	public void resolveStructureValueReturnsDefaultValue() {
@@ -171,6 +181,36 @@ public class KameleoonProviderTest {
 	}
 
 	@Test
+	public void testResolve_addDataCalled() {
+		// Arrange
+		Map<String, Value> attributes = new HashMap<String, Value>() {{
+			put(DataType.CUSTOM_DATA.getValue(), DataType.makeCustomData(1, Collections.emptyList()));
+			put(DataType.CONVERSION.getValue(), DataType.makeConversion(1));
+		}};
+
+		EvaluationContext evalContext = new ImmutableContext("", attributes);
+
+		List<Data> expectedData = new ArrayList<Data>() {{
+			add(new CustomData(1, Collections.emptyList()));
+			add(new Conversion(1));
+		}};
+
+		// Act
+		provider.onContextSet(null, evalContext);
+
+		// Assert
+		ArgumentCaptor<Data> dataCaptor = ArgumentCaptor.forClass(Data.class);
+		verify(clientMock, times(1)).addData(dataCaptor.capture());
+		List<Data> addedData = dataCaptor.getAllValues();
+
+		assertEquals(2, addedData.size());
+		assertTrue(addedData.get(0) instanceof CustomData);
+		assertTrue(addedData.get(1) instanceof Conversion);
+		assertEquals(expectedData.get(0), addedData.get(0));
+		assertEquals(expectedData.get(1), addedData.get(1));
+	}
+
+	@Test
 	public void readyProviderStatus() {
 		// Arrange
 		when(clientMock.isReady()).thenReturn(true);
@@ -181,15 +221,6 @@ public class KameleoonProviderTest {
 
 	@Test
 	public void notReadyProviderStatus() {
-		// Assert
-		assertEquals(ProviderNotReady.INSTANCE, provider.getProviderStatus());
-	}
-
-	@Test
-	public void errorProviderStatus() {
-		// Arrange
-		readyFuture.completeExceptionally(new KameleoonException.SDKNotReady(""));
-
 		// Assert
 		assertEquals(ProviderNotReady.INSTANCE, provider.getProviderStatus());
 	}

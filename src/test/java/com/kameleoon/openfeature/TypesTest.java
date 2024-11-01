@@ -12,6 +12,7 @@ public class TypesTest {
 	@Test
 	public void checkTypeValues_ProperValues() {
 		// Assert
+		assertEquals("variableKey", DataType.VARIABLE_KEY.getValue());
 		assertEquals("conversion", DataType.CONVERSION.getValue());
 		assertEquals("customData", DataType.CUSTOM_DATA.getValue());
 
